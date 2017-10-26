@@ -7,9 +7,26 @@ module.exports = function myPlugin({ types: t }) {
       false
   );
 
+  function hasRenderMethod(path) {
+    if(!path.node.body) {
+      return false;
+    }
+    var members = path.node.body;
+    for(var i = 0; i < members.length; i++) {
+      if (members[i].type === 'ClassMethod' && members[i].key.name === 'render') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   const visitorClassBody = (path, className) => {
     const length = path.node.body.length;
     let added = false;
+
+    if (!(className && hasRenderMethod(path))) {
+      return;
+    }
 
     for (let i = 0; i < length; i++) {
       if (t.isClassProperty(path.node.body[i])) {
@@ -29,11 +46,15 @@ module.exports = function myPlugin({ types: t }) {
   const classVisitor = {
     ClassDeclaration(path) {
       const pathBody = path.get('body');
-      visitorClassBody(pathBody, path.node.id.name);
+      if (path.node.id && path.node.id.name) {
+        visitorClassBody(pathBody, path.node.id.name);
+      }
     },
     ClassExpression(path) {
       const pathBody = path.get('body');
-      visitorClassBody(pathBody, path.node.id.name);
+      if (path.node.id && path.node.id.name) {
+        visitorClassBody(pathBody, path.node.id.name);
+      }
     },
   };
 
